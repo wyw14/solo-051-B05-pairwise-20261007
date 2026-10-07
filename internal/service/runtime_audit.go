@@ -97,8 +97,9 @@ func (s *Service) Audit(ctx context.Context, runtime *Runtime) AuditReport {
 		report.Passed = false
 		report.Checks["optical_reconnect"] = reconnectErr.Error()
 	} else {
-		channel <- model.ThicknessSample{RunID: model.NewID(), Frequency: 10, Transmission: 0.9, Nanometers: 5, Valid: true, At: time.Now().UTC()}
-		_, observed := consumer.WaitForSample(20 * time.Millisecond)
+		runID := model.NewID()
+		channel <- model.ThicknessSample{RunID: runID, Frequency: 10, Transmission: 0.9, Nanometers: 5, Valid: true, At: time.Now().UTC()}
+		_, observed := consumer.WaitForSample(runID, 20 * time.Millisecond)
 		report.Checks["optical_reconnect"] = fmt.Sprintf("observed=%t reconnects=%d", observed, consumer.ReconnectCount())
 	}
 	close(stop)

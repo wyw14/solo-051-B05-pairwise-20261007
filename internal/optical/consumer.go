@@ -54,20 +54,14 @@ func (c *Consumer) Reconnect() chan model.ThicknessSample {
 	return samples
 }
 func (c *Consumer) ReconnectCount() int { c.mu.Lock(); defer c.mu.Unlock(); return c.reconnects }
-func (c *Consumer) WaitForSample(timeout time.Duration) (model.ThicknessSample, bool) {
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-	for {
-		sample := c.monitor.Latest()
-		if sample.At.IsZero() {
-			select {
-			case <-deadline.C:
-				return model.ThicknessSample{}, false
-			default:
-				time.Sleep(time.Millisecond)
-				continue
-			}
-		}
-		return sample, true
+// WaitForSample blocks until the monitor receives a new sample for runID
+// (one added after this call started), or until timeout elapses. A previous
+// run's latest sample — or any sample already present at wait time — can
+// never satisfy the wait; the caller only receives a new sample of the
+// target run.
+func (c *Consumer) WaitForSample(runID model.ID, timeout time.Duration) (model.ThicknessSample, bool) {
+	if runID == "" {
+		return model.ThicknessSample{}, false
 	}
+	return c.monitor.WaitForRun(runID, timeout)
 }
